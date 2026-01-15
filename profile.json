@@ -1,0 +1,88 @@
+{
+  "name": "Your Name",
+  "title": "Your Primary Role / Title",
+  "bio": "A 2-3 sentence professional summary (100-300 words). What makes you valuable? What's your core expertise and what drives your work?",
+  
+  "contact": "your.email@example.com",
+  
+  "skills": [
+    {
+      "name": "Python",
+      "proficiency": "Expert"
+    },
+    {
+      "name": "System Design",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Problem Solving",
+      "proficiency": "Advanced"
+    }
+  ],
+  
+  "experience": [
+    {
+      "role": "Your Role Title",
+      "company": "Company Name",
+      "duration": "YYYY-present or YYYY-YYYY",
+      "key_impact": "What did you achieve? Quantify if possible. 1-2 sentences minimum (10+ characters)."
+    }
+  ],
+  
+  "education": [
+    {
+      "degree": "Bachelor of Science",
+      "school": "University Name",
+      "year": 2020
+    }
+  ],
+  
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "What the project does and why it matters. Impact and significance. (10+ characters)",
+      "tech_stack": ["Python", "FastAPI", "PostgreSQL"]
+    }
+  ],
+  
+  "philosophies": [
+    {
+      "name": "First Principles Thinking",
+      "description": "Break problems down to fundamentals. Question assumptions. Rebuild from core truth. This drives better solutions."
+    }
+  ],
+  
+  "personality_traits": [
+    {
+      "category": "Hobbies",
+      "details": "Rock climbing and trail running",
+      "relevance": "Taught me persistence, risk assessment, and the importance of safety protocols"
+    },
+    {
+      "category": "Interests",
+      "details": "Music production and sound design",
+      "relevance": "Sharpened attention to detail and creative problem-solving in complex systems"
+    },
+    {
+      "category": "Adjacent Skills",
+      "details": "UX/Product thinking from freelance consulting",
+      "relevance": "Brings user-centric perspective to technical decisions and architecture"
+    }
+  ],
+  
+  "problem_solving_approach": "Start by understanding constraints and context. Research existing solutions. Build prototypes rapidly. Iterate based on data and feedback. Measure twice, ship once.",
+  
+  "leadership_style": "Collaborative and hands-on. Empower team members while maintaining technical depth. Lead by example.",
+  
+  "mentoring_experience": true,
+  
+  "communication_style": "Clear and direct. Explain complex topics in accessible ways. Use analogies and examples. Listen more than speak.",
+  
+  "work_location": "Remote, flexible timezone",
+  
+  "learning_goals": [
+    "Master advanced system architecture patterns",
+    "Deepen knowledge in distributed systems",
+    "Develop stronger leadership and mentoring skills"
+  ]
+}

@@ -9,18 +9,22 @@
 	"compatibility_date": "2025-09-27",
 	"observability": {
 		"enabled": true
-	}
-	/**
-	 * Smart Placement
-	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
-	 */
-	// "placement": {  "mode": "smart" }
-	/**
-	 * Bindings
-	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-	 * databases, object storage, AI inference, real-time communication and more.
-	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
-	 */
+	},
+	"ai": {
+		"binding": "ai"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT",
+			"id": "f0b28013317c4d5b809bf29334a71916",
+			"preview_id": "9076f558beca49b0bfc4561687a55aaf"
+		},
+		{
+			"binding": "CONVERSATION_HISTORY",
+			"id": "58988716c0274e45aac975cbc9b11687",
+			"preview_id": "cfbefa8f8c324ef79a92ae7874a3147f"
+		}
+	],
 	/**
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables

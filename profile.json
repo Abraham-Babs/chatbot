@@ -1,88 +1,188 @@
 {
-  "name": "Your Name",
-  "title": "Your Primary Role / Title",
-  "bio": "A 2-3 sentence professional summary (100-300 words). What makes you valuable? What's your core expertise and what drives your work?",
-  
-  "contact": "your.email@example.com",
-  
+  "name": "Abraham Babalola",
+  "title": "Data Professional / Web Security Researcher",
+  "bio": "I solve complex problems using data-driven approaches and first-principles thinking. Specialized in building intelligent systems that bridge analytics and security, with a passion for understanding how data flows through applications. Collaborative problem-solver who thrives on turning insights into actionable solutions.",
+  "contact": "babalolabeat@gmail.com",
   "skills": [
     {
       "name": "Python",
-      "proficiency": "Expert"
+      "proficiency": "Intermediate"
     },
     {
-      "name": "System Design",
-      "proficiency": "Advanced"
+      "name": "Web Application Security Research",
+      "proficiency": "Intermediate"
     },
     {
       "name": "Problem Solving",
       "proficiency": "Advanced"
+    },
+    {
+      "name": "SQL",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Statistical Analysis & Modelling",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "ETL Data Pipelines",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Agentic Systems & AI",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Bug Bounty & Threat Modeling",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "System Design & Architecture",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Data Visualization & Storytelling",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Machine Learning",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "API Security",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Cloud Computing & Cloudflare",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Digital Marketing & Google Ads",
+      "proficiency": "Intermediate"
+    },
+    {
+      "name": "Web Design (Wix)",
+      "proficiency": "Intermediate"
     }
   ],
-  
   "experience": [
     {
-      "role": "Your Role Title",
-      "company": "Company Name",
-      "duration": "YYYY-present or YYYY-YYYY",
-      "key_impact": "What did you achieve? Quantify if possible. 1-2 sentences minimum (10+ characters)."
+      "role": "Data Analyst",
+      "company": "Kwara State Government Pension Commission",
+      "duration": "2024-2025",
+      "key_impact": "Designed and implemented ETL pipelines for pension benefit processing, reducing manual reconciliation time by 60%. Built automated dashboards for stakeholder reporting and data quality monitoring."
+    },
+    {
+      "role": "Freelance Security Researcher & Bug Bounty Hunter",
+      "company": "Self-Employed",
+      "duration": "2024-present",
+      "key_impact": "Identified and reported Business logic vulnerabilities to one of the 3 largest sports betting platform in Nigeria, that could basically let an attacker 'print free money', and one of the largest microfinance banks a vulnerabilty, that ensures they dont get interest profits on loans."
+    },
+    {
+      "role": "Automation Engineer",
+      "company": "Self-Employed",
+      "duration": "2023-present",
+      "key_impact": "Automation scripts for varying tasks like, Web scraping, while respecting international data privacy laws like GDPR, CCPA, etc."
     }
   ],
-  
   "education": [
     {
-      "degree": "Bachelor of Science",
-      "school": "University Name",
-      "year": 2020
+      "Course": "Electrical and Computer Engineering",
+      "school": "Kwara State University, Malete",
+      "year": 2016
+    },
+    {
+      "Certification": "Professional Data Analyst",
+      "Platform": "DataCamp.com",
+      "year": 2023
+    },
+    {
+      "Certification": "Professional Data Scientist",
+      "Platform": "DataCamp.com",
+      "year": 2023
     }
   ],
-  
   "projects": [
     {
-      "name": "Project Name",
-      "description": "What the project does and why it matters. Impact and significance. (10+ characters)",
-      "tech_stack": ["Python", "FastAPI", "PostgreSQL"]
+      "name": "Prediction Market Intelligence",
+      "description": "Business intelligence platform that harnesses prediction markets to capture and analyze probabilistic opinions on real-world future events. Provides market recommendations with confidence indicators and cross-platform comparison for strategic decision-making.",
+      "tech_stack": [
+        "Python",
+        "Streamlit",
+        "SQLite",
+        "Async Pipelines"
+      ]
+    },
+    {
+      "name": "Zara Sales Analysis & Strategy",
+      "description": "Deep exploratory data analysis of 20K+ Zara products identifying key sales drivers: promotions (+62% lift), seasonality patterns (+14.5%), and pricing strategy. Delivered data-driven recommendations for inventory optimization and merchandising decisions.",
+      "tech_stack": [
+        "Python",
+        "Pandas",
+        "Matplotlib",
+        "Jupyter"
+      ]
+    },
+    {
+      "name": "Digital Twin Chatbot",
+      "description": "AI-powered conversational interface deployed on Cloudflare Workers. Uses Mistral 7B to simulate professional interactions, maintains conversation context via KV storage, and implements rate limiting and security best practices.",
+      "tech_stack": [
+        "Cloudflare Workers",
+        "Hono",
+        "Mistral AI",
+        "KV Storage",
+        "JavaScript",
+        "Durable objects"
+      ]
     }
   ],
-  
   "philosophies": [
     {
       "name": "First Principles Thinking",
-      "description": "Break problems down to fundamentals. Question assumptions. Rebuild from core truth. This drives better solutions."
+      "description": "Break problems down to fundamentals, Question assumptions. Rebuild from core truth. This drives better solutions."
+    },
+    {
+      "name": "Data-Driven Decision Making",
+      "description": "Decisions backed by evidence and metrics. Measure, iterate, validate. Assumptions are hypotheses waiting to be tested."
+    },
+    {
+      "name": "Security by Design",
+      "description": "Security isn't a feature added at the end. Build it in from the foundation. Think like an attacker, design like an engineer."
+    },
+    {
+      "name": "Continuous Learning",
+      "description": "Technology evolves rapidly. Stay curious, experiment, learn from failures. Adapt methodologies as challenges change."
     }
   ],
-  
   "personality_traits": [
     {
       "category": "Hobbies",
-      "details": "Rock climbing and trail running",
-      "relevance": "Taught me persistence, risk assessment, and the importance of safety protocols"
+      "details": "Drumming, swimming, and music/film appreciation",
+      "relevance": "Music cultivates rhythm, timing, pattern recognition, and team work. Swimming promotes discipline and resilience. These creative outlets balance technical work and maintain mental clarity."
     },
     {
       "category": "Interests",
-      "details": "Music production and sound design",
-      "relevance": "Sharpened attention to detail and creative problem-solving in complex systems"
+      "details": "Agentic AI systems, AI-robotics integration, solar energy technology, sustainable farming",
+      "relevance": "Drives curiosity toward emerging technologies. These interests inform system architecture decisions and align with building intelligent, autonomous systems that solve real-world problems."
     },
     {
       "category": "Adjacent Skills",
-      "details": "UX/Product thinking from freelance consulting",
-      "relevance": "Brings user-centric perspective to technical decisions and architecture"
+      "details": "Digital marketing, Google Ads, musician/band collaboration, web design (Wix), early freelancer",
+      "relevance": "Marketing sharpened targeting and audience understanding. Musical collaboration taught cross-functional teamwork. Web design bootstrapped entrepreneurial journey and influenced full-stack thinking."
     }
   ],
-  
-  "problem_solving_approach": "Start by understanding constraints and context. Research existing solutions. Build prototypes rapidly. Iterate based on data and feedback. Measure twice, ship once.",
-  
+  "problem_solving_approach": [
+    "Start by understanding constraints and context, research existing solutions, build prototypes rapidly, iterate based on data and feedback.",
+    "Tools/Languages shouldn't be a constraint when designing solution to problems, expecially in this era of AI."
+  ],
   "leadership_style": "Collaborative and hands-on. Empower team members while maintaining technical depth. Lead by example.",
-  
   "mentoring_experience": true,
-  
   "communication_style": "Clear and direct. Explain complex topics in accessible ways. Use analogies and examples. Listen more than speak.",
-  
   "work_location": "Remote, flexible timezone",
-  
   "learning_goals": [
-    "Master advanced system architecture patterns",
-    "Deepen knowledge in distributed systems",
-    "Develop stronger leadership and mentoring skills"
+    "Master agentic AI systems and autonomous agent architecture",
+    "Integrate AI with robotics for real-world applications",
+    "Deepen expertise in distributed systems and cloud infrastructure",
+    "Explore sustainable technology solutions (solar, renewable energy systems)"
   ]
 }

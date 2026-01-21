@@ -15,14 +15,25 @@
 	},
 	"kv_namespaces": [
 		{
-			"binding": "RATE_LIMIT",
-			"id": "f0b28013317c4d5b809bf29334a71916",
-			"preview_id": "9076f558beca49b0bfc4561687a55aaf"
-		},
+			"binding": "KV",
+			"id": "ip_rate_limit_namespace",
+			"preview_id": "ip_rate_limit_preview"
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "CHAT_SESSION",
+				"class_name": "ChatSession"
+			}
+		]
+	},
+	"migrations": [
 		{
-			"binding": "CONVERSATION_HISTORY",
-			"id": "58988716c0274e45aac975cbc9b11687",
-			"preview_id": "cfbefa8f8c324ef79a92ae7874a3147f"
+			"tag": "v1",
+			"new_classes": [
+				"ChatSession"
+			]
 		}
 	],
 	/**

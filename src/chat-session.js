@@ -184,7 +184,7 @@ GUIDELINES:
 		this.connections.delete(ws)
 	}
 
-	async handleAlarm() {
+	async alarm() {
 		this.conversationHistory = []
 		this.connections.clear()
 	}

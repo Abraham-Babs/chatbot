@@ -46,19 +46,20 @@ app.use('*', async (c, next) => {
 
 	await next()
 
-	// Add security headers
-	c.header('X-Content-Type-Options', 'nosniff')
-	c.header('X-Frame-Options', 'DENY')
-	c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-	c.header('Cache-Control', 'no-store, no-cache, must-revalidate')
-	c.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
+	if (c.req.path !== '/chat' && !c.req.header('Upgrade')) {
+		c.header('X-Content-Type-Options', 'nosniff')
+		c.header('X-Frame-Options', 'DENY')
+		c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+		c.header('Cache-Control', 'no-store, no-cache, must-revalidate')
+		c.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
+	}
 })
 
 // WebSocket endpoint for chat
 app.get('/chat', async (c) => {
 	try {
-		const upgradeHeader = c.req.header('Upgrade')
-		if (upgradeHeader !== 'websocket') return c.json({ error: 'WebSocket connection required' }, 400)
+		const upgradeHeader = c.req.header('Upgrade') || ''
+		if (upgradeHeader.toLowerCase() !== 'websocket') return c.json({ error: 'WebSocket connection required' }, 400)
 
 		const sessionId = c.req.query('sessionId')
 		if (!sessionId || !isValidUUID(sessionId)) return c.json({ error: 'Invalid session ID' }, 400)

@@ -10,7 +10,7 @@ export class ChatSession {
 	}
 
 	async fetch(request) {
-		if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected websocket', { status: 400 })
+		if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') return new Response('Expected websocket', { status: 400 })
 		this.clientIP = request.headers.get('X-Client-IP') || 'unknown'
 		if (this.connections.size >= 5) return new Response('Connection limit exceeded', { status: 429 })
 

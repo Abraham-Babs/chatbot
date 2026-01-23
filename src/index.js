@@ -11,7 +11,9 @@ function isValidUUID(uuid) {
 
 const app = new Hono()
 
-// CORS middleware - whitelist Cloudflare Pages domain
+// ============================================================================
+// 1. TIER ONE: GLOBAL CORS SHIELD
+// ============================================================================
 app.use('*', async (c, next) => {
 	const origin = c.req.header('origin') || ''
 	const allowedOrigins = (c.env.ALLOWED_ORIGINS || '').split(',')
@@ -19,7 +21,7 @@ app.use('*', async (c, next) => {
 	if (allowedOrigins.includes(origin)) {
 		c.header('Access-Control-Allow-Origin', origin)
 		c.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-		c.header('Access-Control-Allow-Headers', 'Content-Type, Upgrade')
+		c.header('Access-Control-Allow-Headers', 'Content-Type, Upgrade, Authorization')
 		c.header('Access-Control-Max-Age', '86400')
 	}
 
@@ -30,44 +32,28 @@ app.use('*', async (c, next) => {
 	await next()
 })
 
-// Request validation middleware
-app.use('*', async (c, next) => {
-	const contentType = c.req.header('content-type') || ''
-	const contentLength = parseInt(c.req.header('content-length') || '0')
-
-	if (c.req.method === 'POST' && c.req.path !== '/sync') {
-		if (!contentType.includes('application/json')) {
-			return c.json({ error: 'Bad request' }, 400)
-		}
-		if (contentLength > 2048) {
-			return c.json({ error: 'Bad request' }, 413)
-		}
-	}
-
-	await next()
-
-	if (c.req.path !== '/chat' && !c.req.header('Upgrade')) {
-		c.header('X-Content-Type-Options', 'nosniff')
-		c.header('X-Frame-Options', 'DENY')
-		c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-		c.header('Cache-Control', 'no-store, no-cache, must-revalidate')
-		c.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
-	}
-})
-
-// WebSocket endpoint for chat
+// ============================================================================
+// 2. TIER TWO: EXEMPT WEBSOCKET ROUTE
+// Handled before security middleware to avoid CSP handshake conflicts.
+// ============================================================================
 app.get('/chat', async (c) => {
 	try {
 		const upgradeHeader = c.req.header('Upgrade') || ''
-		if (upgradeHeader.toLowerCase() !== 'websocket') return c.json({ error: 'WebSocket connection required' }, 400)
+		if (upgradeHeader.toLowerCase() !== 'websocket') {
+			return c.json({ error: 'WebSocket connection required' }, 400)
+		}
 
 		const sessionId = c.req.query('sessionId')
-		if (!sessionId || !isValidUUID(sessionId)) return c.json({ error: 'Invalid session ID' }, 400)
+		if (!sessionId || !isValidUUID(sessionId)) {
+			return c.json({ error: 'Invalid session ID' }, 400)
+		}
 
 		const clientIP = c.req.header('cf-connecting-ip') || 'unknown'
 		const id = c.env.CHAT_SESSION.idFromName(sessionId)
 		const stub = c.env.CHAT_SESSION.get(id)
 
+		// Create a direct request to the Durable Object
+		// Passing raw headers ensures protocol stability
 		const chatRequest = new Request(c.req.url, {
 			method: c.req.method,
 			headers: c.req.raw.headers,
@@ -82,9 +68,33 @@ app.get('/chat', async (c) => {
 	}
 })
 
-// Sync endpoint to vectorize profile.json
+// ============================================================================
+// 3. TIER THREE: SECURITY HEADERS MIDDLEWARE
+// Only applied to non-WebSocket routes (Sync, Errors, etc.) below this point.
+// ============================================================================
+app.use('*', async (c, next) => {
+	await next()
+
+	c.header('X-Content-Type-Options', 'nosniff')
+	c.header('X-Frame-Options', 'DENY')
+	c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+	c.header('Cache-Control', 'no-store, no-cache, must-revalidate')
+	c.header('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'")
+})
+
+// ============================================================================
+// 4. TIER FOUR: SECURED SYNC ROUTE
+// Requires SYNC_SECRET_KEY for AI re-indexing.
+// ============================================================================
 app.post('/sync', async (c) => {
 	try {
+		const authHeader = c.req.header('Authorization')
+		const syncKey = c.env.SYNC_SECRET_KEY
+
+		if (!syncKey || authHeader !== `Bearer ${syncKey}`) {
+			return c.json({ error: 'Unauthorized' }, 401)
+		}
+
 		const chunks = createProfileChunks(profile)
 		const embeddings = await Promise.all(chunks.map(async (chunk) => {
 			const res = await c.env.ai.run('@cf/baai/bge-small-en-v1.5', { text: chunk.content })
@@ -102,6 +112,18 @@ app.post('/sync', async (c) => {
 	}
 })
 
+// ============================================================================
+// 5. TIER FIVE: GLOBAL REJECTION (HIDE API)
+// Catch-all for any other path (including /) to hide the API from probing.
+// ============================================================================
+app.notFound((c) => {
+	return c.json({ error: 'Not Found' }, 404)
+})
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
 function createProfileChunks(obj, path = []) {
 	let chunks = []
 
@@ -110,10 +132,8 @@ function createProfileChunks(obj, path = []) {
 		const section = currentPath[0]
 
 		if (value && typeof value === 'object' && !Array.isArray(value)) {
-			// Recursive call for nested objects
 			chunks.push(...createProfileChunks(value, currentPath))
 		} else if (Array.isArray(value)) {
-			// Handle arrays (e.g., skills, experience)
 			value.forEach((item, index) => {
 				if (typeof item === 'object') {
 					chunks.push(...createProfileChunks(item, [...currentPath, index]))
@@ -126,7 +146,6 @@ function createProfileChunks(obj, path = []) {
 				}
 			})
 		} else {
-			// Primitive values
 			chunks.push({
 				id: currentPath.join('_'),
 				section: section,
@@ -135,7 +154,6 @@ function createProfileChunks(obj, path = []) {
 		}
 	}
 
-	// If this is the root call, group small related chunks into more context-rich strings
 	if (path.length === 0) {
 		return consolidateChunks(chunks)
 	}
@@ -155,8 +173,6 @@ function consolidateChunks(chunks) {
 		content: `${section.toUpperCase()} INFO:\n${contents.join('\n')}`
 	}))
 }
-
-app.get('/', (c) => c.json({ status: 'ok' }))
 
 export default app
 export { ChatSession }

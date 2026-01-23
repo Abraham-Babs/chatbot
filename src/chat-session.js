@@ -83,10 +83,26 @@ export class ChatSession {
 			ws.send(JSON.stringify({ type: 'status', status: 'responding' }))
 
 			let fullAIResponse = ""
+			const decoder = new TextDecoder()
+			let buffer = ""
+
 			for await (const chunk of stream) {
-				if (chunk.response) {
-					fullAIResponse += chunk.response
-					ws.send(JSON.stringify({ type: 'chunk', text: chunk.response, done: false }))
+				buffer += decoder.decode(chunk, { stream: true })
+				let lines = buffer.split('\n')
+				buffer = lines.pop() || ""
+
+				for (const line of lines) {
+					if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+						try {
+							const data = JSON.parse(line.slice(6))
+							if (data.response) {
+								fullAIResponse += data.response
+								ws.send(JSON.stringify({ type: 'chunk', text: data.response, done: false }))
+							}
+						} catch (e) {
+							// Incomplete JSON, should technically not happen with line splitting but safe to ignore
+						}
+					}
 				}
 			}
 

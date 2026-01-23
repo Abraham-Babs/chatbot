@@ -88,21 +88,40 @@ export class ChatSession {
 
 			for await (const chunk of stream) {
 				buffer += decoder.decode(chunk, { stream: true })
-				let lines = buffer.split('\n')
+				let lines = buffer.split(/\n+/)
 				buffer = lines.pop() || ""
 
 				for (const line of lines) {
-					if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+					const trimmedLine = line.trim()
+					if (!trimmedLine || trimmedLine === 'data: [DONE]') continue
+
+					const match = trimmedLine.match(/^data:\s*(.*)$/)
+					if (match) {
 						try {
-							const data = JSON.parse(line.slice(6))
+							const data = JSON.parse(match[1])
 							if (data.response) {
 								fullAIResponse += data.response
 								ws.send(JSON.stringify({ type: 'chunk', text: data.response, done: false }))
 							}
 						} catch (e) {
-							// Incomplete JSON, should technically not happen with line splitting but safe to ignore
+							// If parsing fails, it might be a split line, though split lines are largely handled by pop()
 						}
 					}
+				}
+			}
+
+			// Capture any final response that might have been left in the buffer
+			if (buffer) {
+				const trimmedLine = buffer.trim()
+				const match = trimmedLine.match(/^data:\s*(.*)$/)
+				if (match && trimmedLine !== 'data: [DONE]') {
+					try {
+						const data = JSON.parse(match[1])
+						if (data.response) {
+							fullAIResponse += data.response
+							ws.send(JSON.stringify({ type: 'chunk', text: data.response, done: false }))
+						}
+					} catch (e) { }
 				}
 			}
 

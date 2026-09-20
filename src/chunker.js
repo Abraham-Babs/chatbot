@@ -110,5 +110,27 @@ export function createProfileChunks(profile) {
 		})
 	}
 
+	// 10. Contact & Public Profiles
+	if (profile.contact) {
+		const contactStr = typeof profile.contact === 'object'
+			? Object.entries(profile.contact).map(([k, v]) => `${k}: ${v}`).join(', ')
+			: profile.contact
+		chunks.push({
+			id: 'contact_info',
+			section: 'contact',
+			content: `Contact details and profiles: ${contactStr}`
+		})
+	}
+
+	// 11. Availability & Target Engagements
+	if (profile.availability || profile.target_roles) {
+		const roles = Array.isArray(profile.target_roles) ? profile.target_roles.join(', ') : (profile.target_roles || '')
+		chunks.push({
+			id: 'availability',
+			section: 'availability',
+			content: `Availability and engagements: ${profile.availability || ''}. Target roles and work: ${roles}`.trim()
+		})
+	}
+
 	return chunks
 }

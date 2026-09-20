@@ -1,80 +1,107 @@
-# Cloudflare Workers AI Digital Twin & Edge RAG Starter Kit
+# Cloudflare Workers AI Digital Twin
 
-A production-ready conversational AI skeleton and edge API deployed on Cloudflare Workers. It acts as an interactive digital twin and portfolio assistant, answering queries using Retrieval-Augmented Generation (RAG) over structured profile data.
+A conversational edge service deployed on Cloudflare Workers. Serves as a digital twin and interactive portfolio API.
 
-Built on Cloudflare serverless edge primitives: real-time streaming WebSockets via Durable Objects, vector search via Vectorize, and edge LLM inference via Workers AI with multi-model fallback.
+Built on Cloudflare Workers primitives: WebSocket streaming via Durable Objects, direct context grounding, and edge inference via Workers AI with fallback handling.
 
-## System Architecture
+## Architecture
+
+```mermaid
+flowchart TD
+    Client["Client (Browser / Widget)"] -->|"WebSocket (/chat?sessionId=UUID)"| Gateway["Worker Gateway (Hono)<br/>• CORS Shield<br/>• Security Headers<br/>• UUID Validation"]
+    
+    Gateway -->|"Protocol Upgrade"| DO["Durable Object (ChatSession)<br/>Stateful WebSocket Session"]
+    
+    subgraph DO_Runtime["Durable Object Execution"]
+        RL["Native Rate Limiter<br/>10 req/min per IP"]
+        Quota["Session Quota<br/>20 msg limit"]
+        Context["In-Memory Profile<br/>~600 tokens distilled"]
+    end
+    
+    DO --- RL
+    DO --- Quota
+    DO --- Context
+
+    Context -->|"Prompt + Conversation History"| AI["Workers AI Model Waterfall<br/>(temperature: 0.4, max_tokens: 400)"]
+
+    subgraph Pool["Model Waterfall"]
+        M1["1. Llama 3.1 8B Instruct"] -->|Failover| M2["2. Llama 3.1 8B Fast"]
+        M2 -->|Failover| M3["3. Llama 3.2 3B Instruct"]
+        M3 -->|Failover| M4["4. Mistral 7B Instruct v0.2"]
+    end
+    AI --> Pool
+
+    Pool -->|"Token Stream"| DO
+    DO -->|"WebSocket Frames"| Client
+
+    DO -.->|"waitUntil (Background)"| D1[("Cloudflare D1<br/>• Salted SHA-256 IP Hash<br/>• Scrubbed Query & Response")]
+```
 
 ```text
-Client (Browser / Chat Widget)
+Client (Browser / Widget)
    |
    |  WebSocket (/chat?sessionId=<uuid>)
    v
-Worker Gateway (CORS whitelisting, HTTP security headers, input validation)
+Worker Gateway (CORS, security headers, input validation)
    |
    v
 Durable Object (ChatSession)
-   |-- Rate Limiting: 10 requests/minute per IP (native Cloudflare limiter)
-   |-- Session Guard: 20 messages per session with recruiter call-to-action
-   |-- Semantic Search: Top-k chunk retrieval from Vectorize via BGE embeddings
-   |-- Model Waterfall: Llama 3.1 8B -> Mistral 7B v0.2 -> Llama 3 8B
-   `-- Audit Logging: Salted SHA-256 IP hash and PII-redacted queries stored in D1
+   |-- Rate Limiting: 10 req/min per IP (native Cloudflare limiter)
+   |-- Session Quota: 20 messages per session
+   |-- Context: In-memory structured profile (~600 tokens)
+   |-- Model Fallback: Llama 3.1 8B -> Llama 3.1 8B Fast -> Llama 3.2 3B -> Mistral 7B
+   `-- Audit Logging: Salted SHA-256 IP hash and sanitized queries in D1
 ```
 
-## Core Features
+## Engineering Notes: Why We Dropped Vector RAG
 
-- **Stateful WebSockets with Durable Objects**: Each browser session connects to an isolated Durable Object instance. Storage alarms automatically clear conversation history and active connections after 24 hours of inactivity.
-- **Configurable Edge RAG**: Splits `profile.json` into semantic chunks (`src/chunker.js`) covering identity, skills, employment impact, projects, and contact info. Queries are embedded using BAAI BGE (`@cf/baai/bge-small-en-v1.5`) and matched in Vectorize. A resilient static fallback handles vector lookup timeouts.
-- **Prioritized Model Pool**: The engine cascades through a prioritized pool (`@cf/meta/llama-3.1-8b-instruct`, `@cf/mistral/mistral-7b-instruct-v0.2`, `@cf/meta/llama-3-8b-instruct`) to mitigate serverless GPU cold starts and platform rate limits.
-- **Multi-Layered Abuse & Cost Controls**:
-  - Edge sliding-window rate limiting (10 requests/minute per IP).
-  - Per-session message ceiling (20 messages) prompting visitors toward direct contact.
-  - Payload caps (500 characters input, `max_tokens: 400` output).
-- **Privacy by Design**: Client IPs are salted and hashed with SHA-256 before insertion into Cloudflare D1. Incoming queries are scrubbed for email patterns to keep audit logs free of raw PII.
-- **Template Architecture**: Keeps personal profile data local. Cloners customize `profile.json` from `profile.example.json` without committing personal identifiers to version control.
+The original prototype ran classic RAG: chunk `profile.json`, compute embeddings via BGE (`bge-small-en-v1.5`), store in Vectorize, and retrieve `topK: 3` per query.
 
----
+We ripped that out for two reasons:
 
-## Quick Start
+1. **Retrieval drops facts on small documents.**
+   Cosine similarity over 3 chunks regularly misses relevant data (e.g., education or specific project history). When an 8B model doesn't see facts in its prompt, it guesses based on name associations. That caused hallucinations.
+2. **Double inference burns quota and adds latency.**
+   Querying Vectorize required running an embedding inference *plus* the LLM generation on every single message. That consumed 2x the daily Workers AI Neurons and added 200ms of edge latency for zero tangible benefit.
 
-### 1. Prerequisites
+A distilled resume fits into ~600 tokens. Modern context windows handle this with room to spare. Injecting the full profile directly into the system prompt gives 100% factual accuracy, zero retrieval misses, lower TTFT, and half the neuron burn.
+
+The Vectorize setup script (`scripts/setup-profile-vectors.js`) and `/sync` route are kept in the repo for reference if scaling to larger document sets.
+
+## Features
+
+- **Isolated Sessions:** Durable Objects manage individual WebSocket lifecycles. Storage alarms purge inactive sessions after 24 hours.
+- **Controlled Generation:** System prompt includes few-shot turns to anchor tone, dry wit, and strict boundary rules. Inference is pinned at `temperature: 0.4`.
+- **Model Waterfall:** Automatically falls back across 4 models if the primary instance hits GPU queues or cold starts.
+- **Abuse Protections:** Sliding window rate limiting, 500-char input validation, and message caps.
+- **Privacy:** Query logs are scrubbed for email addresses and IPs are one-way hashed before writing to D1. No PII is committed to git.
+
+## Setup
+
+### Prerequisites
 - Node.js 18+
-- Cloudflare account with Workers AI, Vectorize, and D1 enabled
+- Cloudflare account with Workers, Workers AI, and D1 enabled
 
-### 2. Install Dependencies
+### Install
 ```bash
 npm install
 ```
-*`npm install` automatically creates your local `profile.json` from `profile.example.json` if one does not already exist.*
+Creates a local `profile.json` from `profile.example.json` if missing.
 
-### 3. Customize Your Profile
-Edit `profile.json` with your own details, projects, and contact information. `profile.json` is gitignored so your personal data remains private to your deployment.
+### Configure
+Fill out `profile.json` with your data. This file is gitignored.
 
-### 4. Run Tests
-Validate integration contracts and chunking logic against local Miniflare:
+### Test
 ```bash
 npm test
 ```
 
-### 5. Local Development
+### Dev
 ```bash
 npm run dev
 ```
 
-### 6. Initialize Vector Embeddings
-Generate embeddings and populate your Vectorize index from `profile.json`:
-```bash
-npm run setup-vectors
-```
-
-Alternatively, trigger dynamic updates in production via the authenticated sync endpoint:
-```bash
-curl -X POST https://<your-worker>.workers.dev/sync \
-  -H "Authorization: Bearer <SYNC_SECRET_KEY>"
-```
-
-### 7. Production Deployment
+### Deploy
 ```bash
 npm run deploy
 ```

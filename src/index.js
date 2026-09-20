@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { ChatSession } from './chat-session.js'
+import { createProfileChunks } from './chunker.js'
 import profile from '../profile.json'
 
 // UUID v4 validation regex (crypto.randomUUID() format)
@@ -108,7 +109,8 @@ app.post('/sync', async (c) => {
 		await c.env.VECTORIZE.insert(embeddings)
 		return c.json({ status: 'success', chunks: chunks.length })
 	} catch (error) {
-		return c.json({ error: error.message }, 500)
+		console.error('[Sync Error]', error)
+		return c.json({ error: 'Sync failed' }, 500)
 	}
 })
 
@@ -119,60 +121,6 @@ app.post('/sync', async (c) => {
 app.notFound((c) => {
 	return c.json({ error: 'Not Found' }, 404)
 })
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function createProfileChunks(obj, path = []) {
-	let chunks = []
-
-	for (const [key, value] of Object.entries(obj)) {
-		const currentPath = [...path, key]
-		const section = currentPath[0]
-
-		if (value && typeof value === 'object' && !Array.isArray(value)) {
-			chunks.push(...createProfileChunks(value, currentPath))
-		} else if (Array.isArray(value)) {
-			value.forEach((item, index) => {
-				if (typeof item === 'object') {
-					chunks.push(...createProfileChunks(item, [...currentPath, index]))
-				} else {
-					chunks.push({
-						id: [...currentPath, index].join('_'),
-						section: section,
-						content: `${currentPath.join(' ')}: ${item}`
-					})
-				}
-			})
-		} else {
-			chunks.push({
-				id: currentPath.join('_'),
-				section: section,
-				content: `${currentPath.join(' ')}: ${value}`
-			})
-		}
-	}
-
-	if (path.length === 0) {
-		return consolidateChunks(chunks)
-	}
-	return chunks
-}
-
-function consolidateChunks(chunks) {
-	const grouped = chunks.reduce((acc, chunk) => {
-		acc[chunk.section] = acc[chunk.section] || []
-		acc[chunk.section].push(chunk.content)
-		return acc
-	}, {})
-
-	return Object.entries(grouped).map(([section, contents]) => ({
-		id: `section_${section}`,
-		section: section,
-		content: `${section.toUpperCase()} INFO:\n${contents.join('\n')}`
-	}))
-}
 
 export default app
 export { ChatSession }

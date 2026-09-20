@@ -1,25 +1,41 @@
 import profile from '../profile.json'
 
+const MODEL_POOL = [
+	'@cf/meta/llama-3.1-8b-instruct',
+	'@cf/mistral/mistral-7b-instruct-v0.2',
+	'@cf/meta/llama-3-8b-instruct'
+]
+
 export class ChatSession {
 	constructor(state, env) {
 		this.state = state
 		this.env = env
 		this.connections = new Set()
 		this.conversationHistory = []
-		this.clientIP = null
+		this.socketIPs = new WeakMap()
 	}
 
 	async fetch(request) {
-		if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') return new Response('Expected websocket', { status: 400 })
-		this.clientIP = request.headers.get('X-Client-IP') || 'unknown'
-		if (this.connections.size >= 5) return new Response('Connection limit exceeded', { status: 429 })
+		if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
+			return new Response('Expected websocket', { status: 400 })
+		}
 
+		if (this.connections.size >= 5) {
+			return new Response('Connection limit exceeded', { status: 429 })
+		}
+
+		const clientIP = request.headers.get('X-Client-IP') || 'unknown'
 		const [client, server] = Object.values(new WebSocketPair())
+
 		this.state.acceptWebSocket(server)
 		this.connections.add(server)
-		server.addEventListener('close', () => this.connections.delete(server))
+		this.socketIPs.set(server, clientIP)
 
-		// Set expiration alarm on first access
+		server.addEventListener('close', () => {
+			this.connections.delete(server)
+		})
+
+		// Set expiration alarm on first access (24h cleanup)
 		if (!(await this.state.storage.getAlarm())) {
 			await this.state.storage.setAlarm(Date.now() + 86400000)
 		}
@@ -31,37 +47,49 @@ export class ChatSession {
 		try {
 			if (msg.length > 1024) throw new Error('Message too large')
 			const data = JSON.parse(msg)
+
 			if (data.type === 'ping') return ws.send(JSON.stringify({ type: 'pong' }))
 			if (data.type !== 'chat') return
 
-			// Issue 5: Native Rate Limiting
-			const { success } = await this.env.RATE_LIMITER.limit({ key: this.clientIP })
+			const clientIP = this.socketIPs.get(ws) || 'unknown'
+
+			// Native Edge Rate Limiting (10 req/min)
+			const { success } = await this.env.RATE_LIMITER.limit({ key: clientIP })
 			if (!success) {
 				return ws.send(JSON.stringify({
 					type: 'chunk',
-					text: "I've hit my daily conversation limit for today! I'd love to chat more tomorrow, or you can reach out to me via email at babalolabeat@gmail.com.",
+					text: `Rate limit reached (10 messages per minute). Please wait a moment before trying again, or reach out to me via email at ${profile.contact}.`,
 					done: true
 				}))
 			}
 
-			await this.handleChatMessage(ws, data.message)
+			await this.handleChatMessage(ws, data.message, clientIP)
 		} catch (error) {
 			ws.send(JSON.stringify({ type: 'error', error: error.message }))
 		}
 	}
 
-	async handleChatMessage(ws, message) {
-		const userMsg = message.trim()
+	async handleChatMessage(ws, message, clientIP) {
+		const userMsg = typeof message === 'string' ? message.trim() : ''
 		if (userMsg.length > 500) {
 			return ws.send(JSON.stringify({ type: 'error', error: 'Message too long (max 500 chars)' }))
 		}
 		if (!userMsg) return
 
+		// Session message quota & Call to Action
+		this.messageCount = (this.messageCount || 0) + 1
+		if (this.messageCount > 20) {
+			return ws.send(JSON.stringify({
+				type: 'chunk',
+				text: `We've reached the conversation limit for this session! I'd love to discuss potential opportunities, technical challenges, or collaborations directly—please reach out to Abraham at ${profile.contact}.`,
+				done: true
+			}))
+		}
+
 		ws.send(JSON.stringify({ type: 'status', status: 'thinking' }))
 
 		try {
-			// Issue 2: Parallelize RAG retrieval and history management
-			const [relevantChunks, _] = await Promise.all([
+			const [relevantChunks] = await Promise.all([
 				this.getRelevantProfileChunks(userMsg),
 				Promise.resolve(this.truncateHistory())
 			])
@@ -70,15 +98,32 @@ export class ChatSession {
 			const messages = [
 				{ role: 'system', content: systemPrompt },
 				...this.conversationHistory,
-				{ role: 'user', content: `[USER_INPUT]\n${userMsg}\n[END_USER_INPUT]` }
+				{ role: 'user', content: userMsg }
 			]
 
-			// Issue 1: Native Streaming
-			const stream = await this.env.ai.run('@cf/meta/llama-3.1-8b-instruct', {
-				messages,
-				stream: true,
-				max_tokens: 200
-			})
+			// Waterfall through prioritized model pool
+			let stream = null
+			let usedModel = MODEL_POOL[0]
+			let lastModelError = null
+
+			for (const model of MODEL_POOL) {
+				try {
+					stream = await this.env.ai.run(model, {
+						messages,
+						stream: true,
+						max_tokens: 400
+					})
+					usedModel = model
+					break
+				} catch (err) {
+					console.warn(`[AI Model Pool] ${model} unavailable:`, err.message)
+					lastModelError = err
+				}
+			}
+
+			if (!stream) {
+				throw lastModelError || new Error('All models in fallback pool failed')
+			}
 
 			ws.send(JSON.stringify({ type: 'status', status: 'responding' }))
 
@@ -88,40 +133,37 @@ export class ChatSession {
 
 			for await (const chunk of stream) {
 				buffer += decoder.decode(chunk, { stream: true })
-				let lines = buffer.split(/\n+/)
-				buffer = lines.pop() || ""
+				const lines = buffer.split(/\r?\n/)
+				buffer = lines.pop() ?? ""
 
 				for (const line of lines) {
-					const trimmedLine = line.trim()
-					if (!trimmedLine || trimmedLine === 'data: [DONE]') continue
+					const trimmed = line.trim()
+					if (!trimmed || trimmed === 'data: [DONE]') continue
 
-					const match = trimmedLine.match(/^data:\s*(.*)$/)
-					if (match) {
+					if (trimmed.startsWith('data:')) {
 						try {
-							const data = JSON.parse(match[1])
+							const data = JSON.parse(trimmed.slice(5).trim())
 							if (data.response) {
 								fullAIResponse += data.response
 								ws.send(JSON.stringify({ type: 'chunk', text: data.response, done: false }))
 							}
-						} catch (e) {
-							// If parsing fails, it might be a split line, though split lines are largely handled by pop()
+						} catch {
+							// Incomplete chunk buffer, skip
 						}
 					}
 				}
 			}
 
-			// Capture any final response that might have been left in the buffer
 			if (buffer) {
-				const trimmedLine = buffer.trim()
-				const match = trimmedLine.match(/^data:\s*(.*)$/)
-				if (match && trimmedLine !== 'data: [DONE]') {
+				const trimmed = buffer.trim()
+				if (trimmed.startsWith('data:') && trimmed !== 'data: [DONE]') {
 					try {
-						const data = JSON.parse(match[1])
+						const data = JSON.parse(trimmed.slice(5).trim())
 						if (data.response) {
 							fullAIResponse += data.response
 							ws.send(JSON.stringify({ type: 'chunk', text: data.response, done: false }))
 						}
-					} catch (e) { }
+					} catch {}
 				}
 			}
 
@@ -133,7 +175,7 @@ export class ChatSession {
 			ws.send(JSON.stringify({ type: 'chunk', text: '', done: true }))
 
 			// Background logging (Fire and forget via Durable Object state)
-			this.state.waitUntil(this.logInteraction(userMsg, fullAIResponse, 200))
+			this.state.waitUntil(this.logInteraction(userMsg, fullAIResponse, 400, clientIP, usedModel))
 
 		} catch (error) {
 			console.error('[AI Error]', error)
@@ -145,17 +187,20 @@ export class ChatSession {
 		}
 	}
 
-	async logInteraction(query, response, tokens) {
+	async logInteraction(query, response, tokens, clientIP, modelName) {
 		try {
 			if (!this.env.chatbot_logs) return
 
-			// Use a secret for hashing (set via npx wrangler secret put LOG_SALT)
 			const salt = this.env.LOG_SALT || "development-fallback-salt"
-			const msgUint8 = new TextEncoder().encode(this.clientIP + salt)
+			const msgUint8 = new TextEncoder().encode((clientIP || 'unknown') + salt)
 			const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8)
-			const ipHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
+			const ipHash = Array.from(new Uint8Array(hashBuffer))
+				.map(b => b.toString(16).padStart(2, '0'))
+				.join('')
+				.slice(0, 16)
 
-			const scrubbedQuery = query.replace(/[a-zA-Z0-9._%+-]+@ [a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED]')
+			// Fix email scrubber regex (removed rogue space after @)
+			const scrubbedQuery = query.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED]')
 
 			await this.env.chatbot_logs.prepare(
 				"INSERT INTO interactions (session_id, ip_hash, query, response, tokens, model) VALUES (?, ?, ?, ?, ?, ?)"
@@ -165,7 +210,7 @@ export class ChatSession {
 				scrubbedQuery,
 				response,
 				tokens,
-				'@cf/meta/llama-3.1-8b-instruct'
+				modelName || '@cf/meta/llama-3.1-8b-instruct'
 			).run()
 		} catch (e) {
 			console.warn('[D1 Logging Error]', e.message)
@@ -190,10 +235,19 @@ export class ChatSession {
 				topK: 3,
 				returnMetadata: true
 			})
-			return results.matches.map(m => m.metadata.content)
+			if (results.matches && results.matches.length > 0) {
+				return results.matches.map(m => m.metadata.content)
+			}
 		} catch (e) {
-			return [`${profile.name} is a ${profile.title}. ${profile.bio}`]
+			console.warn('[Vectorize Query Failed, falling back to core profile]', e.message)
 		}
+
+		// Resilient fallback context
+		return [
+			`${profile.name} is a ${profile.title}. ${profile.bio}`,
+			`Problem solving: ${profile.problem_solving_approach}`,
+			`Contact: ${profile.contact}`
+		]
 	}
 
 	truncateHistory() {
@@ -203,8 +257,9 @@ export class ChatSession {
 	}
 
 	buildSystemPrompt(chunks) {
-		return `You are the AI Digital Twin of ${profile.name}, a ${profile.title}. 
+		return `You are the AI Digital Twin of ${profile.name}, a ${profile.title}.
 Your goal is to demonstrate technical expertise and professional value to recruiters and hiring managers.
+
 CONTEXT:
 ${chunks.join('\n\n')}
 
@@ -212,7 +267,8 @@ GUIDELINES:
 - Be engaging, professional, and proactive in highlighting core strengths (e.g., First Principles thinking, Security by Design, eagerness to learn).
 - When possible, tie answers back to specific impact mentioned in the context.
 - Keep responses concise (under 750 chars).
-- Direct and confident tone.`
+- Do not fabricate or hallucinate accomplishments outside the provided context. If asked something unknown, politely direct them to contact Abraham directly via ${profile.contact}.
+- Direct, clear, and confident tone.`
 	}
 
 	webSocketClose(ws) {
@@ -222,5 +278,6 @@ GUIDELINES:
 	async alarm() {
 		this.conversationHistory = []
 		this.connections.clear()
+		this.messageCount = 0
 	}
 }

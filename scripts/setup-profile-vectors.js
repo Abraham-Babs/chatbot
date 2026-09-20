@@ -1,4 +1,5 @@
 import profile from '../profile.json'
+import { createProfileChunks } from '../src/chunker.js'
 
 /**
  * Script to chunk profile data and generate embeddings for RAG
@@ -57,92 +58,4 @@ export default {
 			return new Response(`Error: ${error.message}`, { status: 500 })
 		}
 	}
-}
-
-/**
- * Break profile into semantic chunks for RAG
- */
-function createProfileChunks(profile) {
-	const chunks = []
-
-	// Core identity chunk
-	chunks.push({
-		id: 'core_identity',
-		section: 'identity',
-		content: `${profile.name} is a ${profile.title}. ${profile.bio}`
-	})
-
-	// Skills chunk
-	const skillsText = profile.skills.map(s => `${s.name} (${s.proficiency})`).join(', ')
-	chunks.push({
-		id: 'skills',
-		section: 'skills',
-		content: `Skills and proficiencies: ${skillsText}`
-	})
-
-	// Experience chunks (one per role)
-	profile.experience.forEach((exp, index) => {
-		chunks.push({
-			id: `experience_${index}`,
-			section: 'experience',
-			content: `${exp.role} at ${exp.company} (${exp.duration}): ${exp.key_impact}`
-		})
-	})
-
-	// Education chunks
-	profile.education.forEach((edu, index) => {
-		const degree = edu.degree || edu.Certification
-		const school = edu.school || edu.Platform
-		const year = edu.year
-		chunks.push({
-			id: `education_${index}`,
-			section: 'education',
-			content: `${degree} from ${school} (${year})`
-		})
-	})
-
-	// Projects chunks
-	profile.projects.forEach((project, index) => {
-		chunks.push({
-			id: `project_${index}`,
-			section: 'projects',
-			content: `${project.name}: ${project.description}. Technologies: ${project.tech_stack?.join(', ') || 'Not specified'}`
-		})
-	})
-
-	// Philosophies chunk
-	const philosophiesText = profile.philosophies.map(p => `${p.name}: ${p.description}`).join('. ')
-	chunks.push({
-		id: 'philosophies',
-		section: 'philosophies',
-		content: `Personal philosophies: ${philosophiesText}`
-	})
-
-	// Personality traits chunk
-	const traitsText = profile.personality_traits.map(t =>
-		`${t.category}: ${t.details}. ${t.relevance}`
-	).join('. ')
-	chunks.push({
-		id: 'personality',
-		section: 'personality',
-		content: `Personality and interests: ${traitsText}`
-	})
-
-	// Problem solving approach chunk
-	chunks.push({
-		id: 'problem_solving',
-		section: 'approach',
-		content: `Problem solving approach: ${Array.isArray(profile.problem_solving_approach)
-			? profile.problem_solving_approach.join(' ')
-			: profile.problem_solving_approach}`
-	})
-
-	// Communication style chunk
-	chunks.push({
-		id: 'communication',
-		section: 'communication',
-		content: `Communication style: ${profile.communication_style}`
-	})
-
-	return chunks
-}
+}

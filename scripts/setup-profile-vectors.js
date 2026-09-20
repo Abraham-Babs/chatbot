@@ -12,17 +12,6 @@ import { createProfileChunks } from '../src/chunker.js'
 export default {
 	async fetch(request, env) {
 		try {
-			// Check if vectors are already initialized
-			const existing = await env.VECTORIZE.query({
-				vector: new Array(384).fill(0), // Dummy vector for metadata query
-				topK: 1,
-				returnMetadata: true
-			})
-
-			if (existing.matches.length > 0) {
-				return new Response('Profile vectors already initialized', { status: 200 })
-			}
-
 			// Create semantic chunks from profile data
 			const chunks = createProfileChunks(profile)
 

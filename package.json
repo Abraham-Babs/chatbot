@@ -7,6 +7,7 @@
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",
+		"postinstall": "node -e \"const fs = require('fs'); if (!fs.existsSync('profile.json')) fs.copyFileSync('profile.example.json', 'profile.json');\"",
 		"setup-vectors": "wrangler deploy scripts/setup-profile-vectors.js"
 	},
 	"devDependencies": {

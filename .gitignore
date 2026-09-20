@@ -166,3 +166,7 @@ dist
 !.env.example
 .wrangler/
 *.code-workspace
+
+# Personal profile configuration
+profile.json
+!profile.example.json

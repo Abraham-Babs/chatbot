@@ -1,0 +1,116 @@
+{
+  "name": "Alex Carter",
+  "title": "AI Systems Engineer / Security Researcher",
+  "bio": "I design high-performance distributed systems, edge architectures, and application security tools. Focused on first-principles engineering and building resilient, observable software.",
+  "contact": {
+    "email": "alex@example.com",
+    "github": "https://github.com/your-username",
+    "whatsapp": "https://wa.me/your-number"
+  },
+  "availability": "Available for full-time remote roles, contract engagements, and consulting gigs.",
+  "target_roles": [
+    "AI Systems Engineer",
+    "Application Security Engineer",
+    "Distributed Systems Developer",
+    "Data Platform Engineer"
+  ],
+  "skills": [
+    {
+      "name": "Python",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Application Security & Threat Modeling",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Cloudflare Workers & Edge Infrastructure",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "Distributed Systems Architecture",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "API Security & Fuzzing",
+      "proficiency": "Advanced"
+    },
+    {
+      "name": "SQL & Data Engineering",
+      "proficiency": "Advanced"
+    }
+  ],
+  "experience": [
+    {
+      "role": "Security Researcher",
+      "company": "Independent Research",
+      "duration": "2023-present",
+      "key_impact": "Identified and responsibly disclosed critical logic and authorization bypass vulnerabilities in distributed platforms."
+    },
+    {
+      "role": "Systems & Automation Engineer",
+      "company": "Tech Consulting",
+      "duration": "2021-2023",
+      "key_impact": "Engineered low-latency data pipelines, API integrations, and resilient edge services with strict data privacy compliance."
+    }
+  ],
+  "education": [
+    {
+      "degree": "Computer Science & Engineering (Coursework)",
+      "school": "University Name",
+      "year": "2018-2021"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Edge AI Digital Twin",
+      "description": "Production conversational AI assistant running on Cloudflare Workers with Durable Objects, Vectorize RAG, and multi-model fallback.",
+      "tech_stack": [
+        "Cloudflare Workers",
+        "Durable Objects",
+        "Vectorize",
+        "Workers AI",
+        "JavaScript"
+      ]
+    },
+    {
+      "name": "Distributed Stream Ingestion",
+      "description": "High-throughput event streaming engine with schema normalization, deduplication, and low-latency metrics aggregation.",
+      "tech_stack": [
+        "Python",
+        "SQLite",
+        "HTTP/2",
+        "Asyncio"
+      ]
+    }
+  ],
+  "philosophies": [
+    {
+      "name": "First Principles Thinking",
+      "description": "Deconstruct problems to their fundamental truths. Challenge assumptions before optimizing, and ground solutions in core constraints."
+    },
+    {
+      "name": "Security by Design",
+      "description": "Security is architectural, not an afterthought. Model threats early and build least-privilege principles into the foundation."
+    }
+  ],
+  "personality_traits": [
+    {
+      "category": "Interests & Pursuits",
+      "details": "Systems design, music production, swimming",
+      "relevance": "Builds pattern recognition, physical endurance, and creative problem-solving under pressure."
+    }
+  ],
+  "problem_solving_approach": [
+    "Deconstruct systems into fundamental constraints, evaluate patterns, and iteratively construct testable prototypes.",
+    "Tools should serve the problem, not dictate the solution."
+  ],
+  "leadership_style": "Collaborative, transparent, and hands-on. Lead by example with high engineering standards.",
+  "mentoring_experience": true,
+  "communication_style": "Clear, direct, and accessible. Translate complex distributed architectures into plain, actionable insights.",
+  "work_location": "Remote, flexible timezone",
+  "learning_goals": [
+    "Advance production-grade autonomous agent architectures",
+    "Deepen research in distributed edge systems and real-time inference"
+  ]
+}

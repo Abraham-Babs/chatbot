@@ -1,5 +1,6 @@
 import profile from '../profile.json'
 import { createProfileChunks } from '../src/chunker.js'
+export { ChatSession } from '../src/chat-session.js'
 
 /**
  * Script to chunk profile data and generate embeddings for RAG

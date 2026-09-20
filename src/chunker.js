@@ -42,7 +42,7 @@ export function createProfileChunks(profile) {
 	// 4. Education & Certifications
 	if (Array.isArray(profile.education)) {
 		profile.education.forEach((edu, index) => {
-			const credential = edu.degree || edu.Certification || 'Education'
+			const credential = edu.degree || edu.Certification || edu.Course || 'Education'
 			const institution = edu.school || edu.Platform || ''
 			const year = edu.year ? ` (${edu.year})` : ''
 			chunks.push({

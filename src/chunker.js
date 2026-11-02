@@ -17,15 +17,20 @@ export function createProfileChunks(profile) {
 	}
 
 	// 2. Skills & Proficiencies
-	if (Array.isArray(profile.skills) && profile.skills.length > 0) {
-		const skillsText = profile.skills
-			.map(s => typeof s === 'object' ? `${s.name} (${s.proficiency})` : s)
-			.join(', ')
-		chunks.push({
-			id: 'skills',
-			section: 'skills',
-			content: `Skills and proficiencies: ${skillsText}`
-		})
+	if (profile.skills) {
+		let skillsText = ''
+		if (Array.isArray(profile.skills)) {
+			skillsText = profile.skills.map(s => (typeof s === 'object' ? `${s.name} (${s.proficiency})` : s)).join(', ')
+		} else if (typeof profile.skills === 'object') {
+			skillsText = Object.entries(profile.skills).map(([cat, list]) => `${cat}: ${Array.isArray(list) ? list.join(', ') : list}`).join(' | ')
+		}
+		if (skillsText) {
+			chunks.push({
+				id: 'skills',
+				section: 'skills',
+				content: `Skills and proficiencies: ${skillsText}`
+			})
+		}
 	}
 
 	// 3. Work Experience (granular per role for precise retrieval)
